@@ -1,0 +1,69 @@
+<launch>
+  <!-- Gen3 specific arguments required by Kortex API for instantiating a private communication session -->
+  <arg name="ip_address" default="192.168.1.1" doc="IP address for TCP/UDP comms"/>
+  <arg name="username" default="admin" doc="Username for kortex session"/>
+  <arg name="password" default="admin" doc="Password for kortex session"/>
+  <arg name="api_session_inactivity_timeout_ms" default="35000"/> <!--milliseconds-->
+  <arg name="api_connection_inactivity_timeout_ms" default="20000"/> <!--milliseconds-->
+  <arg name="dof" default="6"/>
+  <arg name="use_admittance" default="false"/> <!--set to true to use admittance mode provided by kinova-->
+  <arg name="current_control" default="true"/>
+  <arg name="use_gripper" default="true"/>
+  <arg name="urdf_file" default=""/>
+  <arg name="end_effector" default="end_effector_link"/>
+  <arg name="controller_type" default="joint"/>
+  <param name="end_effector" type="string" value="$(arg end_effector)"/>
+ 
+  <!-- Gen3 Hardware Node -->
+  <node name="kortex_hardware" pkg="kortex_hardware" type="kortex_hardware"
+      	output="screen">
+  	<param name="ip_address" value="$(arg ip_address)"/>
+  	<param name="username" value="$(arg username)"/>
+  	<param name="password" value="$(arg password)"/>
+  	<param name="api_session_inactivity_timeout_ms" value="$(arg api_session_inactivity_timeout_ms)"/>
+  	<param name="api_connection_inactivity_timeout_ms" value="$(arg api_connection_inactivity_timeout_ms)"/>
+  	<param name="dof" value="$(arg dof)"/>
+  	<param name="use_admittance" value="$(arg use_admittance)"/>
+  	<param name="current_control" value="$(arg current_control)"/>
+  	<param name="use_gripper" value="$(arg use_gripper)"/>
+    <param name="urdf_file" value="$(arg urdf_file)"/>
+  </node>
+
+  <!-- start joint state and other controllers -->
+  <node name="controller_spawner_started" pkg="controller_manager" type="spawner" respawn="false"
+  	output="screen"
+  	args="
+    	joint_state_controller
+  	" />
+  <group if="$(eval controller_type == 'joint')">
+    <node name="compliant_controller_spawner_started" pkg="controller_manager" type="spawner" respawn="false"
+    	output="screen"
+    	args="
+        --stopped
+        joint_space_compliant_controller
+    	" />
+  </group>
+  <group if="$(eval controller_type == 'task')">
+    <node name="compliant_controller_spawner_started" pkg="controller_manager" type="spawner" respawn="false"
+    	output="screen"
+    	args="
+        --stopped
+        task_space_compliant_controller
+    	" />
+  </group>
+
+  <!-- load controller configuration -->
+  <rosparam file="$(find gen3_compliant_controllers)/config/gen3_$(arg dof)dof_compliant_controllers.yaml" command="load" />
+  
+  <group if="$(eval dof == 6)">
+    <param name="robot_description" command="cat $(find kortex_description)/robots/gen3_$(arg dof)dof_vision_forque.urdf" />
+  </group>
+  <group if="$(eval dof == 7)">
+    <param name="robot_description" command="cat $(find kortex_description)/robots/gen3_$(arg dof)dof_vision.urdf" />
+  </group>
+
+  <node pkg="robot_state_publisher" type="robot_state_publisher" name="rob_st_pub" />
+
+  <!-- <rosparam file="$(find gen3_compliant_controllers)/config/config.yaml"/> -->
+
+</launch>

@@ -1,0 +1,17 @@
+<library path="lib/libgen3_compliant_controllers">
+  <class name="gen3_compliant_controllers/JointSpaceCompliantController"
+         type="gen3_compliant_controllers::JointSpaceCompliantController"
+         base_class_type="controller_interface::ControllerBase">
+    <description>
+      Joint Space Compliant Controller
+    </description>
+  </class>
+  <class name="gen3_compliant_controllers/TaskSpaceCompliantController"
+         type="gen3_compliant_controllers::TaskSpaceCompliantController"
+         base_class_type="controller_interface::ControllerBase">
+    <description>
+      Task Space Compliant Controller
+    </description>
+  </class>
+  
+</library>

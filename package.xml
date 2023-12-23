@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>gen3_compliant_controllers</name>
+  <version>0.0.1</version>
+  <description>ROS Package containing compliant controllers for the Kinova Gen3 arm</description>
+  <maintainer email="rm773@cornell.edu">Rishabh Madan</maintainer>
+  <maintainer email="rj277@cornell.edu">Rajat Kumar Jenamani</maintainer>
+  <license>BSD-3-Clause</license>
+  <url type="repository">https://github.com/empriselab/gen3_compliant_controllers</url>
+  <buildtool_depend>catkin</buildtool_depend>
+  <depend>angles</depend>
+  <depend>controller_interface</depend>
+  <depend>control_msgs</depend>
+  <depend>control_toolbox</depend>
+  <depend>eigen_conversions</depend>
+  <depend>hardware_interface</depend>
+  <depend>moveit_msgs</depend>
+  <depend>realtime_tools</depend>
+  <depend>urdf</depend>
+  <depend>dynamic_reconfigure</depend>
+  <doc_depend>doxygen</doc_depend>
+  <export>
+    <controller_interface plugin="${prefix}/gen3_compliant_controllers_plugins.xml"/>
+  </export>
+</package>

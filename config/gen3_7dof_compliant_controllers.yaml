@@ -1,0 +1,95 @@
+joint_state_controller:
+  type: joint_state_controller/JointStateController
+  publish_rate: 1000
+
+position_controller:
+  type: position_controllers/JointGroupPositionController
+  joints: [joint_1, joint_2, joint_3,
+    joint_4, joint_5, joint_6, joint_7]
+
+velocity_controller:
+  type: velocity_controllers/JointGroupVelocityController
+  joints: [joint_1, joint_2, joint_3,
+    joint_4, joint_5, joint_6, joint_7]
+
+trajectory_velocity_controller:
+  type: velocity_controllers/JointTrajectoryController
+  joints: [joint_1, joint_2, joint_3,
+    joint_4, joint_5, joint_6, joint_7]
+  constraints:
+    stopped_velocity_tolerance: 1.0
+    joint_1:
+      goal: 0.02
+      trajectory: 7
+    joint_2:
+      goal: 0.02
+      trajectory: 7
+    joint_3:
+      goal: 0.02
+      trajectory: 7
+    joint_4:
+      goal: 0.02
+      trajectory: 7
+    joint_5:
+      goal: 0.02
+      trajectory: 7
+    joint_6:
+      goal: 0.02
+      trajectory: 7
+    joint_7:
+      goal: 0.02
+      trajectory: 7
+  gains: # Required because we're controlling a velocity interface
+    joint_1: {p: 10,  d: 0, i: 0, i_clamp: 1}
+    joint_2: {p: 10,  d: 0, i: 0, i_clamp: 1}
+    joint_3: {p: 10,  d: 0, i: 0, i_clamp: 1}
+    joint_4: {p: 10,  d: 0, i: 0, i_clamp: 1}
+    joint_5: {p: 10,  d: 0, i: 0, i_clamp: 1}
+    joint_6: {p: 10,  d: 0, i: 0, i_clamp: 1}
+    joint_7: {p: 10,  d: 0, i: 0, i_clamp: 1}
+
+effort_controller:
+  type: effort_controllers/JointTrajectoryController
+  joints: [joint_1, joint_2, joint_3,
+    joint_4, joint_5, joint_6, joint_7]
+  constraints:
+    stopped_velocity_tolerance: 1.0
+    joint_1:
+      goal: 0.02
+      trajectory: 7
+    joint_2:
+      goal: 0.02
+      trajectory: 7
+    joint_3:
+      goal: 0.02
+      trajectory: 7
+    joint_4:
+      goal: 0.02
+      trajectory: 7
+    joint_5:
+      goal: 0.02
+      trajectory: 7
+    joint_6:
+      goal: 0.02
+      trajectory: 7
+    joint_7:
+      goal: 0.02
+      trajectory: 7
+  gains: # Required because we're controlling a velocity interface
+    joint_1: {p: 100,  d: 16.5, i: 0, i_clamp: 3}
+    joint_2: {p: 130,  d: 16.5, i: 0.03, i_clamp: 3}
+    joint_3: {p: 130,  d: 16.5, i: 0.03, i_clamp: 3}
+    joint_4: {p: 130,  d: 16.5, i: 0.03, i_clamp: 3}
+    joint_5: {p: 130,  d: 16.5, i: 0.03, i_clamp: 3}
+    joint_6: {p: 130,  d: 16.5, i: 0.03, i_clamp: 3}
+    joint_7: {p: 130,  d: 16.5, i: 0.03, i_clamp: 3}
+
+task_space_compliant_controller:
+  type: gen3_compliant_controllers/TaskSpaceCompliantController
+  joints: [joint_1, joint_2, joint_3,
+    joint_4, joint_5, joint_6, joint_7]
+
+joint_space_compliant_controller:
+  type: gen3_compliant_controllers/JointSpaceCompliantController
+  joints: [joint_1, joint_2, joint_3,
+    joint_4, joint_5, joint_6, joint_7]
