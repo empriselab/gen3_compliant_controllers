@@ -26,8 +26,7 @@ inline std::string getLeafNamespace(const ros::NodeHandle& nh)
 
 } // namespace internal
 
-JointSpaceCompliantController::JointSpaceCompliantController()
-  : MultiInterfaceController(true) // allow_optional_interfaces
+JointSpaceCompliantController::JointSpaceCompliantController() : MultiInterfaceController(true) // allow_optional_interfaces
 {
 }
 
@@ -36,8 +35,7 @@ JointSpaceCompliantController::~JointSpaceCompliantController()
 {
 }
 
-bool JointSpaceCompliantController::init(
-    hardware_interface::RobotHW* robot, ros::NodeHandle& n)
+bool JointSpaceCompliantController::init(hardware_interface::RobotHW* robot, ros::NodeHandle& n)
 {
 
   using hardware_interface::EffortJointInterface;
@@ -65,15 +63,13 @@ bool JointSpaceCompliantController::init(
   }
 
   std::string parameterName;
-  mNodeHandle->param<std::string>(
-      "robot_description_parameter", parameterName, "/robot_description");
+  mNodeHandle->param<std::string>("robot_description_parameter", parameterName, "/robot_description");
 
   // Load the URDF from the parameter server.
   std::string robotDescription;
   if (!mNodeHandle->getParam(parameterName, robotDescription))
   {
-    ROS_ERROR_STREAM(
-        "Failed loading URDF from '" << parameterName << "' parameter.");
+    ROS_ERROR_STREAM("Failed loading URDF from '" << parameterName << "' parameter.");
     return false;
   }
   mModel = std::make_shared<pinocchio::Model>();
@@ -111,9 +107,7 @@ bool JointSpaceCompliantController::init(
     }
     catch (const hardware_interface::HardwareInterfaceException& e)
     {
-      ROS_ERROR_STREAM(
-          "Unable to get interface of type 'EffortJointInterface' for joint '"
-          << dofName << "'.");
+      ROS_ERROR_STREAM("Unable to get interface of type 'EffortJointInterface' for joint '" << dofName << "'.");
       return false;
     }
   }
@@ -156,8 +150,7 @@ bool JointSpaceCompliantController::init(
   }
   else
   {
-    mJointStiffnessMatrix.diagonal() << 4000, 4000, 4000, 4000, 3500, 3500,
-        3500;
+    mJointStiffnessMatrix.diagonal() << 4000, 4000, 4000, 4000, 3500, 3500, 3500;
     mRotorInertiaMatrix.diagonal() << 0.3, 0.3, 0.3, 0.3, 0.18, 0.18, 0.2;
     mFrictionL.diagonal() << 75, 75, 75, 75, 40, 40, 40;
     mFrictionLp.diagonal() << 5, 5, 5, 5, 4, 4, 4;
@@ -169,12 +162,10 @@ bool JointSpaceCompliantController::init(
   mDesiredPosition.resize(mNumControlledDofs);
   mDesiredVelocity.resize(mNumControlledDofs);
   mZeros.resize(mNumControlledDofs);
-  mSubCommand = n.subscribe<trajectory_msgs::JointTrajectoryPoint>(
-      "command", 1, &JointSpaceCompliantController::commandCallback, this);
+  mSubCommand = n.subscribe<trajectory_msgs::JointTrajectoryPoint>("command", 1, &JointSpaceCompliantController::commandCallback, this);
 
   // Dynamic reconfigure server
-  f = boost::bind(
-      &JointSpaceCompliantController::dynamicReconfigureCallback, this, _1, _2);
+  f = boost::bind(&JointSpaceCompliantController::dynamicReconfigureCallback, this, _1, _2);
   server.setCallback(f);
 
   ROS_INFO("JointSpaceCompliantController initialized successfully");
@@ -182,39 +173,25 @@ bool JointSpaceCompliantController::init(
 }
 
 //=============================================================================
-void JointSpaceCompliantController::dynamicReconfigureCallback(
-    gen3_compliant_controllers::JointSpaceCompliantControllerConfig& config,
-    uint32_t level)
+void JointSpaceCompliantController::dynamicReconfigureCallback(gen3_compliant_controllers::JointSpaceCompliantControllerConfig& config, uint32_t level)
 {
   if (mNumControlledDofs == 6)
   {
-    mJointStiffnessMatrix.diagonal() << config.j_0, config.j_1, config.j_2,
-        config.j_3, config.j_4, config.j_5;
-    mRotorInertiaMatrix.diagonal() << config.b_0, config.b_1, config.b_2,
-        config.b_3, config.b_4, config.b_5;
-    mFrictionL.diagonal() << config.l_0, config.l_1, config.l_2, config.l_3,
-        config.l_4, config.l_5;
-    mFrictionLp.diagonal() << config.lp_0, config.lp_1, config.lp_2,
-        config.lp_3, config.lp_4, config.lp_5;
-    mJointKMatrix.diagonal() << config.k_0, config.k_1, config.k_2, config.k_3,
-        config.k_4, config.k_5;
-    mJointDMatrix.diagonal() << config.d_0, config.d_1, config.d_2, config.d_3,
-        config.d_4, config.d_5;
+    mJointStiffnessMatrix.diagonal() << config.j_0, config.j_1, config.j_2, config.j_3, config.j_4, config.j_5;
+    mRotorInertiaMatrix.diagonal() << config.b_0, config.b_1, config.b_2, config.b_3, config.b_4, config.b_5;
+    mFrictionL.diagonal() << config.l_0, config.l_1, config.l_2, config.l_3, config.l_4, config.l_5;
+    mFrictionLp.diagonal() << config.lp_0, config.lp_1, config.lp_2, config.lp_3, config.lp_4, config.lp_5;
+    mJointKMatrix.diagonal() << config.k_0, config.k_1, config.k_2, config.k_3, config.k_4, config.k_5;
+    mJointDMatrix.diagonal() << config.d_0, config.d_1, config.d_2, config.d_3, config.d_4, config.d_5;
   }
   else
   {
-    mJointStiffnessMatrix.diagonal() << config.j_0, config.j_1, config.j_2,
-        config.j_3, config.j_4, config.j_5, config.j_6;
-    mRotorInertiaMatrix.diagonal() << config.b_0, config.b_1, config.b_2,
-        config.b_3, config.b_4, config.b_5, config.b_6;
-    mFrictionL.diagonal() << config.l_0, config.l_1, config.l_2, config.l_3,
-        config.l_4, config.l_5, config.l_6;
-    mFrictionLp.diagonal() << config.lp_0, config.lp_1, config.lp_2,
-        config.lp_3, config.lp_4, config.lp_5, config.lp_6;
-    mJointKMatrix.diagonal() << config.k_0, config.k_1, config.k_2, config.k_3,
-        config.k_4, config.k_5, config.k_6;
-    mJointDMatrix.diagonal() << config.d_0, config.d_1, config.d_2, config.d_3,
-        config.d_4, config.d_5, config.d_6;
+    mJointStiffnessMatrix.diagonal() << config.j_0, config.j_1, config.j_2, config.j_3, config.j_4, config.j_5, config.j_6;
+    mRotorInertiaMatrix.diagonal() << config.b_0, config.b_1, config.b_2, config.b_3, config.b_4, config.b_5, config.b_6;
+    mFrictionL.diagonal() << config.l_0, config.l_1, config.l_2, config.l_3, config.l_4, config.l_5, config.l_6;
+    mFrictionLp.diagonal() << config.lp_0, config.lp_1, config.lp_2, config.lp_3, config.lp_4, config.lp_5, config.lp_6;
+    mJointKMatrix.diagonal() << config.k_0, config.k_1, config.k_2, config.k_3, config.k_4, config.k_5, config.k_6;
+    mJointDMatrix.diagonal() << config.d_0, config.d_1, config.d_2, config.d_3, config.d_4, config.d_5, config.d_6;
   }
 }
 
@@ -224,10 +201,8 @@ void JointSpaceCompliantController::starting(const ros::Time& time)
 
   mExecuteDefaultCommand = true;
 
-  ROS_DEBUG_STREAM(
-      "Initialized desired position: " << mDesiredPosition.transpose());
-  ROS_DEBUG_STREAM(
-      "Initialized desired velocity: " << mDesiredVelocity.transpose());
+  ROS_DEBUG_STREAM("Initialized desired position: " << mDesiredPosition.transpose());
+  ROS_DEBUG_STREAM("Initialized desired velocity: " << mDesiredVelocity.transpose());
 
   ROS_DEBUG("Reset PID.");
 }
@@ -238,8 +213,7 @@ void JointSpaceCompliantController::stopping(const ros::Time& time)
 }
 
 //=============================================================================
-void JointSpaceCompliantController::update(
-    const ros::Time& time, const ros::Duration& period)
+void JointSpaceCompliantController::update(const ros::Time& time, const ros::Duration& period)
 {
 
   auto current_time = std::chrono::high_resolution_clock::now();
@@ -250,88 +224,75 @@ void JointSpaceCompliantController::update(
   mLastTimePoint = std::chrono::high_resolution_clock::now();
 
   mJointStateUpdater->update();
-  mActualPosition = mJointStateUpdater->mActualPosition;
-  mActualVelocity = mJointStateUpdater->mActualVelocity;
-  mActualEffort = mJointStateUpdater->mActualEffort;
+  mCurrentPosition = mJointStateUpdater->mCurrentPosition;
+  mCurrentVelocity = mJointStateUpdater->mCurrentVelocity;
+  mCurrentEffort = mJointStateUpdater->mCurrentEffort;
 
   if (mExecuteDefaultCommand.load())
   {
-    mDesiredPosition = mActualPosition;
+    mDesiredPosition = mCurrentPosition;
     mDesiredVelocity.setZero();
     mExecuteDefaultCommand = false;
   }
   else
   {
-    trajectory_msgs::JointTrajectoryPoint command
-        = *mCommandsBuffer.readFromRT();
-    if (command.positions.size() != mNumControlledDofs
-        || command.velocities.size() != mNumControlledDofs)
+    trajectory_msgs::JointTrajectoryPoint command = *mCommandsBuffer.readFromRT();
+    if (command.positions.size() != mNumControlledDofs || command.velocities.size() != mNumControlledDofs)
     {
       // assume last command
-      ROS_WARN_STREAM(
-          "Received command with wrong size. Assuming last command.");
+      ROS_WARN_STREAM("Received command with wrong size. Assuming last command.");
     }
     else
     {
-      mDesiredPosition = Eigen::VectorXd::Map(
-          &command.positions[0], command.positions.size());
-      mDesiredVelocity = Eigen::VectorXd::Map(
-          &command.velocities[0], command.velocities.size());
+      mDesiredPosition = Eigen::VectorXd::Map(&command.positions[0], command.positions.size());
+      mDesiredVelocity = Eigen::VectorXd::Map(&command.velocities[0], command.velocities.size());
     }
   }
 
   if (!mExtendedJoints->mIsInitialized)
   {
     mLastDesiredPosition = mDesiredPosition;
-    mExtendedJoints->initializeExtendedJointPosition(mActualPosition);
-    mExtendedJoints->estimateExtendedJoint(mActualPosition);
+    mExtendedJoints->initializeExtendedJointPosition(mCurrentPosition);
+    mExtendedJoints->estimateExtendedJoint(mCurrentPosition);
     mNominalThetaPrev = mExtendedJoints->getExtendedJoint();
-    mNominalThetaDotPrev = mActualVelocity;
+    mNominalThetaDotPrev = mCurrentVelocity;
     mDesiredPosition = mExtendedJoints->getExtendedJoint();
   }
 
-  if (mDesiredPosition != mLastDesiredPosition
-      && mActualPosition != mDesiredPosition)
+  if (mDesiredPosition != mLastDesiredPosition && mCurrentPosition != mDesiredPosition)
   {
     mLastDesiredPosition = mDesiredPosition;
     mExtendedJoints->estimateExtendedJoint(mDesiredPosition);
     mDesiredPosition = mExtendedJoints->getExtendedJoint();
   }
 
-  mExtendedJoints->estimateExtendedJoint(mActualPosition);
-  mActualTheta = mExtendedJoints->getExtendedJoint();
+  mExtendedJoints->estimateExtendedJoint(mCurrentPosition);
+  mCurrentTheta = mExtendedJoints->getExtendedJoint();
 
-  mGravity = pinocchio::computeGeneralizedGravity(
-      *mModel, *mData, joint_ros_to_pinocchio(mActualTheta, *mModel));
+  mGravity = pinocchio::computeGeneralizedGravity(*mModel, *mData, joint_ros_to_pinocchio(mCurrentTheta, *mModel));
 
   mDesiredTheta = mDesiredPosition + mJointStiffnessMatrix.inverse() * mGravity;
   mDesiredThetaDot = mDesiredVelocity;
 
-  mJointEffort = -mJointKMatrix * (mNominalThetaPrev - mDesiredTheta)
-                 - mJointDMatrix * (mNominalThetaDotPrev - mDesiredThetaDot);
+  mTaskEffort = -mJointKMatrix * (mNominalThetaPrev - mDesiredTheta) - mJointDMatrix * (mNominalThetaDotPrev - mDesiredThetaDot);
 
   double step_time;
   step_time = 0.001;
 
-  mNominalThetaDDot = mRotorInertiaMatrix.inverse()
-                      * (mJointEffort + mGravity
-                         + mActualEffort); // mActualEffort is negative of what
-                                           // is required here
+  mNominalThetaDDot = mRotorInertiaMatrix.inverse() * (mTaskEffort + mGravity + mCurrentEffort); // mCurrentEffort is negative of what is required here
   mNominalThetaDot = mNominalThetaDotPrev + mNominalThetaDDot * step_time;
   mNominalTheta = mNominalThetaPrev + mNominalThetaDot * step_time;
 
   mNominalThetaPrev = mNominalTheta;
   mNominalThetaDotPrev = mNominalThetaDot;
 
-  mNominalFriction = mRotorInertiaMatrix * mFrictionL
-                     * ((mNominalThetaDotPrev - mActualVelocity)
-                        + mFrictionLp * (mNominalThetaPrev - mActualTheta));
+  mNominalFriction = mRotorInertiaMatrix * mFrictionL * ((mNominalThetaDotPrev - mCurrentVelocity) + mFrictionLp * (mNominalThetaPrev - mCurrentTheta));
 
-  mDesiredEffort = mJointEffort + mNominalFriction;
+  mCommandEffort = mTaskEffort + mNominalFriction;
 
   if (mCount < 50)
   {
-    mDesiredEffort = Eigen::VectorXd::Zero(mNumControlledDofs);
+    mCommandEffort = Eigen::VectorXd::Zero(mNumControlledDofs);
     mCount++;
     if (mCount % 200 == 0)
       std::cout << "Initializing controller: " << mCount << std::endl;
@@ -341,18 +302,16 @@ void JointSpaceCompliantController::update(
   for (size_t idof = 0; idof < mNumControlledDofs; ++idof)
   {
     auto jointHandle = mControlledJointHandles[idof];
-    jointHandle.setCommand(mDesiredEffort[idof]);
+    jointHandle.setCommand(mCommandEffort[idof]);
   }
 }
 
-void JointSpaceCompliantController::commandCallback(
-    const trajectory_msgs::JointTrajectoryPointConstPtr& msg)
+void JointSpaceCompliantController::commandCallback(const trajectory_msgs::JointTrajectoryPointConstPtr& msg)
 {
   // Preconditions
   if (!shouldAcceptRequests())
   {
-    ROS_ERROR_STREAM_NAMED(
-        mName, "Can't accept new commands. Controller is not running.");
+    ROS_ERROR_STREAM_NAMED(mName, "Can't accept new commands. Controller is not running.");
     return;
   }
 
@@ -383,6 +342,4 @@ bool JointSpaceCompliantController::shouldStopExecution(std::string& message)
 } // namespace gen3_compliant_controllers
 
 //=============================================================================
-PLUGINLIB_EXPORT_CLASS(
-    gen3_compliant_controllers::JointSpaceCompliantController,
-    controller_interface::ControllerBase)
+PLUGINLIB_EXPORT_CLASS(gen3_compliant_controllers::JointSpaceCompliantController, controller_interface::ControllerBase)

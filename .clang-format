@@ -33,7 +33,7 @@ BreakBeforeBraces: Custom
 BreakBeforeInheritanceComma: true
 BreakBeforeTernaryOperators: true
 BreakConstructorInitializersBeforeComma: true
-ColumnLimit:     80
+ColumnLimit:     200
 CommentPragmas:  ''
 ConstructorInitializerAllOnOneLineOrOnePerLine: true
 ConstructorInitializerIndentWidth: 2
@@ -49,7 +49,7 @@ IncludeBlocks: Regroup
 IncludeCategories:
   - Regex:     '^<([a-z|_]+)>' # standard library headers
     Priority:  1
-  - Regex:     '^(<|")aikido/' # Aikido headers
+  - Regex:     '^(<|")pinocchio/' # Pinocchio headers
     Priority:  3
   - Regex:     '^(<[A-z]+)'    # dependency headers
     Priority:  2

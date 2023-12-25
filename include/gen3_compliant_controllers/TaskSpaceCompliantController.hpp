@@ -1,175 +1,135 @@
 #ifndef GEN3_COMPLIANT_CONTROLLERS__TASK_SPACE_COMPLIANT_CONTROLLER_H
 #define GEN3_COMPLIANT_CONTROLLERS__TASK_SPACE_COMPLIANT_CONTROLLER_H
 
-// pinocchio
+// pinocchio headers
+#include <pinocchio/algorithm/frames.hpp>
 #include <pinocchio/algorithm/joint-configuration.hpp>
+#include <pinocchio/algorithm/model.hpp>
 #include <pinocchio/algorithm/rnea.hpp>
+#include <pinocchio/multibody/data.hpp>
 #include <pinocchio/parsers/sample-models.hpp>
+#include <pinocchio/parsers/urdf.hpp>
 
+// std headers
+#include <chrono>
 #include <string>
 #include <vector>
+using namespace std::chrono;
 
-#include <realtime_tools/realtime_buffer.h>
-#include <ros/node_handle.h>
-
-#include "pinocchio/algorithm/frames.hpp"
-#include "pinocchio/algorithm/model.hpp"
-#include "pinocchio/multibody/data.hpp"
-#include "pinocchio/parsers/urdf.hpp"
-
-// ROS messages
-#include <eigen_conversions/eigen_msg.h>
-#include <moveit_msgs/CartesianTrajectoryPoint.h>
-
-// ros_controls
-#include <chrono>
-
+// ros headers
 #include <controller_interface/multi_interface_controller.h>
+#include <dynamic_reconfigure/server.h>
+#include <eigen_conversions/eigen_msg.h>
 #include <hardware_interface/joint_command_interface.h>
 #include <hardware_interface/joint_state_interface.h>
 #include <hardware_interface/robot_hw.h>
+#include <moveit_msgs/CartesianTrajectoryPoint.h>
 #include <realtime_tools/realtime_buffer.h>
-using namespace std::chrono;
+#include <ros/node_handle.h>
 
-#include <dynamic_reconfigure/server.h>
+// local headers
 #include <gen3_compliant_controllers/TaskSpaceCompliantControllerConfig.h>
 #include <gen3_compliant_controllers/helpers.hpp>
 
 namespace gen3_compliant_controllers {
-class TaskSpaceCompliantController
-  : public controller_interface::MultiInterfaceController<
-        hardware_interface::EffortJointInterface,
-        hardware_interface::JointStateInterface>
+class TaskSpaceCompliantController : public controller_interface::MultiInterfaceController<hardware_interface::EffortJointInterface, hardware_interface::JointStateInterface>
 {
 public:
+  // Constructor and Destructor
   TaskSpaceCompliantController();
   ~TaskSpaceCompliantController();
 
-  /** \brief The init function is called to initialize the controller from a
-   * non-realtime thread with a pointer to the hardware interface, itself,
-   * instead of a pointer to a RobotHW.
-   *
-   * \param robot The specific hardware interface used by this controller.
-   *
-   * \param n A NodeHandle in the namespace from which the controller
-   * should read its configuration, and where it should set up its ROS
-   * interface.
-   *
-   * \returns True if initialization was successful and the controller
-   * is ready to be started.
-   */
+  // Initialize the controller
   bool init(hardware_interface::RobotHW* robot, ros::NodeHandle& n) override;
 
-  /** \brief This is called from within the realtime thread just before the
-   * first call to \ref update
-   *
-   * \param time The current time
-   */
-  void starting(const ros::Time& time) override;
-  void stopping(const ros::Time& time) override;
+  // Lifecycle hooks for the controller
+  void starting(const ros::Time& time) override; // Called before the first update
+  void stopping(const ros::Time& time) override; // Called when the controller is stopped
 
-  /*!
-   * \brief Issues commands to the joint. Should be called at regular intervals
-   */
+  // Main update loop where control commands are computed and sent to the robot
   void update(const ros::Time& time, const ros::Duration& period) override;
 
 private:
-  std::unique_ptr<JointStateUpdater> mJointStateUpdater;
-  bool shouldAcceptRequests();
-  bool shouldStopExecution(std::string& message);
+  // STATE AND COMMAND HANDLING
+  std::unique_ptr<JointStateUpdater> mJointStateUpdater;                                 // Joint state updater
+  bool shouldAcceptRequests();                                                           // Check if the controller should accept requests
+  bool shouldStopExecution(std::string& message);                                        // Check if the controller should stop execution
+  realtime_tools::RealtimeBuffer<moveit_msgs::CartesianTrajectoryPoint> mCommandsBuffer; // Command buffer
+  std::atomic_bool mExecuteDefaultCommand;                                               // Execute default command flag
+  ros::Subscriber mSubCommand;                                                           // Subscriber for command messages
+  void commandCallback(const moveit_msgs::CartesianTrajectoryPointConstPtr& msg);        // Callback for command messages
 
-  realtime_tools::RealtimeBuffer<moveit_msgs::CartesianTrajectoryPoint>
-      mCommandsBuffer;
-  std::atomic_bool mExecuteDefaultCommand;
+  // CONTROLLER CONFIGURATION
+  std::string mName;                                                    // Controller name
+  std::vector<std::string> mJointNames;                                 // Controlled joint names
+  std::unique_ptr<ros::NodeHandle> mNodeHandle;                         // Node handle
+  std::vector<hardware_interface::JointHandle> mControlledJointHandles; // Joint handles
 
-  std::string mName;                    ///< Controller name.
-  std::vector<std::string> mJointNames; ///< Controlled joint names
+  // PINOCCHIO OBJECTS
+  std::shared_ptr<pinocchio::Model> mModel; // Model object
+  std::unique_ptr<pinocchio::Data> mData;   // Data object
+  pinocchio::Model::Index mEENode;          // End-effector node index
+  int mNumControlledDofs;                   // Number of controlled joints
 
-  // pinocchio objects
-  std::shared_ptr<pinocchio::Model> mModel;
-  std::unique_ptr<pinocchio::Data> mData;
-  pinocchio::Model::Index mEENode;
-  int mNumControlledDofs;
+  // TUANBLE PARAMETERS
+  Eigen::MatrixXd mJointStiffnessMatrix; // Joint stiffness matrix
+  Eigen::MatrixXd mRotorInertiaMatrix;   // Rotor inertia matrix
+  Eigen::MatrixXd mFrictionL;            // Friction observer matrix 1
+  Eigen::MatrixXd mFrictionLp;           // Friction observer matrix 2
+  Eigen::MatrixXd mTaskKMatrix;          // Task compliance proportional gain matrix
+  Eigen::MatrixXd mTaskDMatrix;          // Task compliance derivative gain matrix
 
-  std::unique_ptr<ros::NodeHandle> mNodeHandle;
+  long long int mCount; // Used during initialization
 
-  std::vector<hardware_interface::JointHandle> mControlledJointHandles;
+  // SENSOR READINGS
+  Eigen::VectorXd mCurrentPosition; // Joint position read from sensor
+  Eigen::VectorXd mCurrentVelocity; // Joint velocity read from sensor
+  Eigen::VectorXd mCurrentEffort;   // Joint effort read from sensor
 
-  // DYNAMIC PARAMETER OF KINOVA GEN3
-  Eigen::MatrixXd mJointStiffnessMatrix;
-  Eigen::MatrixXd mRotorInertiaMatrix;
+  // COMPUTED VARIABLES
+  Eigen::VectorXd mCurrentTheta; // Normalized joint position
 
-  Eigen::MatrixXd mFrictionL;
-  Eigen::MatrixXd mFrictionLp;
+  Eigen::VectorXd mTrueDesiredPosition; // True desired joint position
+  Eigen::VectorXd mTrueDesiredVelocity; // True desired joint velocity
 
-  Eigen::MatrixXd mJointKMatrix;
-  Eigen::MatrixXd mJointDMatrix;
+  Eigen::VectorXd mDesiredPosition; // Desired joint position
+  Eigen::VectorXd mDesiredVelocity; // Desired joint velocity
+  Eigen::VectorXd mDesiredTheta;    // Desired motor position
+  Eigen::VectorXd mDesiredThetaDot; // Desired motor velocity
 
-  Eigen::MatrixXd mTaskKMatrix;
-  Eigen::MatrixXd mTaskDMatrix;
+  Eigen::VectorXd mCommandEffort; // Commanded joint effort
+  Eigen::VectorXd mTaskEffort;    // Task effort
 
-  long long int mCount;
+  Eigen::VectorXd mLastDesiredPosition; // Last desired joint position (used for checking if desired position has changed)
+  Eigen::VectorXd mLastDesiredVelocity; // Last desired joint velocity
 
-  Eigen::VectorXd mActualTheta;
-  Eigen::VectorXd mActualThetaDot;
+  Eigen::VectorXd mNominalTheta;     // Nominal joint position computed from model
+  Eigen::VectorXd mNominalThetaDot;  // Nominal joint velocity computed from model
+  Eigen::VectorXd mNominalThetaDDot; // Nominal joint acceleration computed from model
 
-  Eigen::VectorXd mTrueDesiredPosition;
-  Eigen::VectorXd mTrueDesiredVelocity;
+  Eigen::VectorXd mNominalThetaPrev;    // Previous nominal joint position
+  Eigen::VectorXd mNominalThetaDotPrev; // Previous nominal joint velocity
 
-  Eigen::VectorXd mDesiredPosition;
-  Eigen::VectorXd mDesiredVelocity;
-  Eigen::VectorXd mDesiredTheta;
-  Eigen::VectorXd mDesiredThetaDot;
+  Eigen::VectorXd mZeros;           // Vector of zeros
+  Eigen::VectorXd mGravity;         // Gravity computed from model
+  Eigen::VectorXd mQuasiGravity;    // Quasistatic gravity computed from model
+  Eigen::VectorXd mNominalFriction; // Nominal friction computed from model
 
-  Eigen::VectorXd mDesiredEffort;
-  Eigen::VectorXd mTaskEffort;
+  ExtendedJointPosition* mExtendedJoints;        // Used for computing normalized joint position
+  ExtendedJointPosition* mExtendedJointsGravity; // Used for computing normalized joint position for gravity compensation
 
-  Eigen::VectorXd mLastDesiredPosition;
-  Eigen::VectorXd mLastDesiredVelocity;
+  Eigen::Isometry3d mDesiredEETransform; // Desired end-effector transform
+  Eigen::Isometry3d mNominalEETransform; // Nominal end-effector transform
+  Eigen::Isometry3d mTrueDesiredEETransform; // True desired end-effector transform
+  Eigen::Isometry3d mLastDesiredEETransform; // Last desired end-effector transform
 
-  Eigen::VectorXd mNominalTheta;
-  Eigen::VectorXd mNominalThetaDot;
-  Eigen::VectorXd mNominalThetaDDot;
-
-  Eigen::VectorXd mNominalThetaPrev;
-  Eigen::VectorXd mNominalThetaDotPrev;
-
-  Eigen::VectorXd mZeros;
-  Eigen::VectorXd mGravity;
-  Eigen::VectorXd mQuasiGravity;
-  Eigen::VectorXd mNominalFriction;
-
-  Eigen::VectorXd mActualPosition;
-  Eigen::VectorXd mActualVelocity;
-  Eigen::VectorXd mActualEffort;
-
-  ExtendedJointPosition* mExtendedJoints;
-  ExtendedJointPosition* mExtendedJointsGravity;
-
-  Eigen::Isometry3d mActualEETransform;
-  Eigen::Isometry3d mDesiredEETransform;
-  Eigen::Isometry3d mNominalEETransform;
-  Eigen::Isometry3d mTrueDesiredEETransform;
-  Eigen::Isometry3d mLastDesiredEETransform;
-
-  ros::Subscriber mSubCommand;
-  void commandCallback(
-      const moveit_msgs::CartesianTrajectoryPointConstPtr& msg);
-
-  // for debugging
+  // DEBUGGING
   std::chrono::time_point<std::chrono::high_resolution_clock> mLastTimePoint;
 
-  // dynamic reconfigure
-  dynamic_reconfigure::Server<
-      gen3_compliant_controllers::TaskSpaceCompliantControllerConfig>
-      server;
-  dynamic_reconfigure::Server<
-      gen3_compliant_controllers::TaskSpaceCompliantControllerConfig>::
-      CallbackType f;
-
-  void dynamicReconfigureCallback(
-      gen3_compliant_controllers::TaskSpaceCompliantControllerConfig& config,
-      uint32_t level);
+  // DYNAMIC RECONFIGURE
+  dynamic_reconfigure::Server<gen3_compliant_controllers::TaskSpaceCompliantControllerConfig> server; // Dynamic reconfigure server
+  dynamic_reconfigure::Server<gen3_compliant_controllers::TaskSpaceCompliantControllerConfig>::CallbackType f; // Dynamic reconfigure callback type
+  void dynamicReconfigureCallback(gen3_compliant_controllers::TaskSpaceCompliantControllerConfig& config, uint32_t level); // Dynamic reconfigure callback function
 };
 
 } // namespace gen3_compliant_controllers

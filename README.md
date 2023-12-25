@@ -1,7 +1,7 @@
 # Kinova Gen3 Compliant Controllers
 ![build](https://github.com/empriselab/gen3_compliant_controllers/actions/workflows/build-test.yml/badge.svg)
 
-This repository provides joint-space and task-space compliant ROS1 controllers with [model-free friction observers](https://ieeexplore.ieee.org/document/8781838) for the Kinova Gen3 robot arm.
+This repository provides joint-space and task-space compliant ROS1 controllers with [model-free friction observers](https://ieeexplore.ieee.org/document/8781838) for the Kinova Gen3 robot arm. The controller formulation implemented can be found [here](media/controller_formulation.pdf).
 
 <p align="center">
   <img src="media/demo.gif" alt="Demo GIF" />
@@ -28,6 +28,8 @@ cd .. && catkin build
 ## Usage
 It is preferred to have the robot and the system running ROS on the same network and connected via ethernet (especially important for torque control). For safety purposes, **make sure to have the e-stop next to you when testing.**
 
+To ensure correct biasing of the robot's torque sensors, position the robot to the candlestick configuration with all joint positions set to zero. Then, zero out the actuator torque offset for each joint using the web application. For testing compliant control, return the robot to a general position like HOME; avoid testing at the candlestick position due to potential instability.
+
 Running instructions for testing the controllers:
 ```
 # In terminal 1
@@ -37,9 +39,9 @@ roslaunch gen3_compliant_controllers controller.launch ip_address:=<robot-ip-add
 
 # In terminal 2
 cd ~/hw_test_ws && source devel/setup.bash
-roscd gen3_compliant_controllers/script
+roscd gen3_compliant_controllers/scripts
 python test_controllers.py joint # <task/joint>
-# The robot will drop a bit as it switches to effort mode
+# The robot will jerk a bit as it switches to effort mode
 
 DOF: <specify joint number between 1-NDOF>
 Value: <enter joint value> # in radians
@@ -82,4 +84,4 @@ Any contributions related to bug fixes/feature additions/documentation are welco
 * Send a PR to the main repository and tag the maintainers to request a review.
 
 ## Authors
-This implementation is done by [EmPRISE Lab](https://emprise.cs.cornell.edu/) at Cornell University in collaboration with [Intelligent Robotic Systems Lab](https://sites.google.com/view/kaist-roboticslab) at KAIST. It is currently maintained by Rishabh Madan ([@madan96](https://github.com/madan96)) and Rajat Kumar Jenamani ([@RKJenamani](https://github.com/RKJenamani)). It has received major initial contributions from [Seo Wook Han](tjdnr7117@kaist.ac.kr).
+This implementation is done by [EmPRISE Lab](https://emprise.cs.cornell.edu/) at Cornell University in collaboration with [Intelligent Robotic Systems Lab](https://sites.google.com/view/kaist-roboticslab) at KAIST. It is currently maintained by Rishabh Madan ([@madan96](https://github.com/madan96)) and Rajat Kumar Jenamani ([@RKJenamani](https://github.com/RKJenamani)). It has received major initial contributions from [Seo Wook Han](mailto:tjdnr7117@kaist.ac.kr).

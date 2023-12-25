@@ -3,18 +3,8 @@
 namespace gen3_compliant_controllers {
 
 //=============================================================================
-JointStateUpdater::JointStateUpdater(
-    std::shared_ptr<pinocchio::Model> model,
-    hardware_interface::JointStateInterface* jointStateInterface)
-  : mModel(model)
-  , mActualPosition(model->nv)
-  , mActualVelocity(model->nv)
-  , mActualEffort(model->nv)
-  , mPinActualPosition(model->nq)
-  , mDefaultPosition(model->nv)
-  , mDefaultVelocity(model->nv)
-  , mDefaultEffort(model->nv)
-  , mPinDefaultPosition(model->nq)
+JointStateUpdater::JointStateUpdater(std::shared_ptr<pinocchio::Model> model, hardware_interface::JointStateInterface* jointStateInterface)
+  : mModel(model), mCurrentPosition(model->nv), mCurrentVelocity(model->nv), mCurrentEffort(model->nv), mDefaultPosition(model->nv), mDefaultVelocity(model->nv), mDefaultEffort(model->nv)
 {
   std::set<std::string> missingJointNames;
 
@@ -38,11 +28,7 @@ JointStateUpdater::JointStateUpdater(
       missingJointNames.emplace(dofName);
 
       // Use the default position, velocity, and effort.
-      handle = hardware_interface::JointStateHandle{
-          dofName,
-          &mDefaultPosition[idof],
-          &mDefaultVelocity[idof],
-          &mDefaultEffort[idof]};
+      handle = hardware_interface::JointStateHandle{dofName, &mDefaultPosition[idof], &mDefaultVelocity[idof], &mDefaultEffort[idof]};
     }
 
     mHandles.emplace_back(handle);
@@ -51,8 +37,7 @@ JointStateUpdater::JointStateUpdater(
   if (mHandles.empty())
   {
     std::stringstream msg;
-    msg << "Failed to get JointStateHandles for " << missingJointNames.size()
-        << " joints. The following joints will be assumed to have their"
+    msg << "Failed to get JointStateHandles for " << missingJointNames.size() << " joints. The following joints will be assumed to have their"
         << " position and velocity for dynamics calculations:";
 
     for (const auto& dofName : missingJointNames)
@@ -60,8 +45,6 @@ JointStateUpdater::JointStateUpdater(
 
     ROS_WARN_STREAM(msg.str());
   }
-
-  mPinDefaultPosition = joint_ros_to_pinocchio(mDefaultPosition, *model.get());
 }
 
 //=============================================================================
@@ -70,17 +53,16 @@ void JointStateUpdater::update()
   for (size_t idof = 0; idof < mModel->nv; ++idof)
   {
     const auto& jointStateHandle = mHandles[idof];
-    mActualPosition(idof) = jointStateHandle.getPosition();
-    if (mActualPosition[idof] < 0)
-      mActualPosition[idof] += 2 * M_PI;
-    mActualVelocity[idof] = jointStateHandle.getVelocity();
-    mActualEffort[idof] = jointStateHandle.getEffort();
+    mCurrentPosition(idof) = jointStateHandle.getPosition();
+    if (mCurrentPosition[idof] < 0)
+      mCurrentPosition[idof] += 2 * M_PI;
+    mCurrentVelocity[idof] = jointStateHandle.getVelocity();
+    mCurrentEffort[idof] = jointStateHandle.getEffort();
   }
 }
 
 //=============================================================================
-ExtendedJointPosition::ExtendedJointPosition(
-    unsigned int numberOfInput_args, double threshold_of_change_args)
+ExtendedJointPosition::ExtendedJointPosition(unsigned int numberOfInput_args, double threshold_of_change_args)
 {
   mNumberOfInput = numberOfInput_args;
   mThresholdOfChange = threshold_of_change_args;
@@ -90,8 +72,7 @@ ExtendedJointPosition::ExtendedJointPosition(
 }
 
 //=============================================================================
-void ExtendedJointPosition::initializeExtendedJointPosition(
-    const Eigen::VectorXd& init_q_args)
+void ExtendedJointPosition::initializeExtendedJointPosition(const Eigen::VectorXd& init_q_args)
 {
   if (mIsInitialized == false)
   {
@@ -124,8 +105,7 @@ double ExtendedJointPosition::normalizeJointPosition(double input)
 }
 
 //=============================================================================
-Eigen::VectorXd ExtendedJointPosition::normalizeJointPosition(
-    const Eigen::VectorXd& input)
+Eigen::VectorXd ExtendedJointPosition::normalizeJointPosition(const Eigen::VectorXd& input)
 {
   Eigen::VectorXd output = input;
   for (int i = 0; i < mNumberOfInput; ++i)
@@ -136,15 +116,13 @@ Eigen::VectorXd ExtendedJointPosition::normalizeJointPosition(
 }
 
 //=============================================================================
-void ExtendedJointPosition::estimateExtendedJoint(
-    const Eigen::VectorXd& current_sensor_q)
+void ExtendedJointPosition::estimateExtendedJoint(const Eigen::VectorXd& current_sensor_q)
 {
   for (int i = 0; i < mNumberOfInput; ++i)
   {
     if (abs(current_sensor_q[i] - mPreviousSensorQ(i)) >= mThresholdOfChange)
     {
-      mExtendedQ(i) += normalizeJointPosition(current_sensor_q[i])
-                       - normalizeJointPosition(mPreviousSensorQ(i));
+      mExtendedQ(i) += normalizeJointPosition(current_sensor_q[i]) - normalizeJointPosition(mPreviousSensorQ(i));
     }
     else
     {
@@ -170,8 +148,7 @@ Eigen::VectorXd ExtendedJointPosition::getExtendedJoint()
 }
 
 //=============================================================================
-Eigen::MatrixXd ExtendedJointPosition::pseudoinverse(
-    const Eigen::MatrixXd& mat, double eps)
+Eigen::MatrixXd ExtendedJointPosition::pseudoinverse(const Eigen::MatrixXd& mat, double eps)
 {
   if (mat.rows() == mat.cols() && mat.determinant() > eps)
     return mat.inverse();
@@ -189,8 +166,7 @@ Eigen::MatrixXd ExtendedJointPosition::pseudoinverse(
     }
 
     /// Use SVD decomposition.
-    Eigen::JacobiSVD<Eigen::MatrixXd> jacSVD(
-        mat, Eigen::ComputeFullU | Eigen::ComputeFullV);
+    Eigen::JacobiSVD<Eigen::MatrixXd> jacSVD(mat, Eigen::ComputeFullU | Eigen::ComputeFullV);
     // mat, Eigen::ComputeThinU | Eigen::ComputeThinV);
     Eigen::MatrixXd U = jacSVD.matrixU();
     Eigen::MatrixXd V = jacSVD.matrixV();
@@ -215,13 +191,11 @@ Eigen::MatrixXd ExtendedJointPosition::pseudoinverse(
 }
 
 //=============================================================================
-Eigen::MatrixXd ExtendedJointPosition::computeEEMassMatrix(
-    Eigen::MatrixXd mMassMatrix, Eigen::VectorXd q, Eigen::MatrixXd J)
+Eigen::MatrixXd ExtendedJointPosition::computeEEMassMatrix(Eigen::MatrixXd mMassMatrix, Eigen::VectorXd q, Eigen::MatrixXd J)
 {
   Eigen::MatrixXd Mq_inv = pseudoinverse(mMassMatrix, 1e-6);
   Eigen::MatrixXd Mx_inv = J * (Mq_inv * J.transpose());
-  Eigen::JacobiSVD<Eigen::MatrixXd> jacSVD(
-      Mx_inv, Eigen::ComputeFullU | Eigen::ComputeFullV);
+  Eigen::JacobiSVD<Eigen::MatrixXd> jacSVD(Mx_inv, Eigen::ComputeFullU | Eigen::ComputeFullV);
   // Mx_inv, Eigen::ComputeThinU | Eigen::ComputeThinV);
   Eigen::MatrixXd U = jacSVD.matrixU();
   Eigen::MatrixXd V = jacSVD.matrixV();
@@ -245,8 +219,7 @@ Eigen::MatrixXd ExtendedJointPosition::computeEEMassMatrix(
 }
 
 //=============================================================================
-Eigen::VectorXd joint_ros_to_pinocchio(
-    Eigen::VectorXd& q, pinocchio::Model& model)
+Eigen::VectorXd joint_ros_to_pinocchio(Eigen::VectorXd& q, pinocchio::Model& model)
 {
   Eigen::VectorXd q_pin(model.nq);
   // convert ROS joint config to pinocchio config
@@ -269,10 +242,7 @@ Eigen::VectorXd joint_ros_to_pinocchio(
 }
 
 //=============================================================================
-std::vector<JointParameter> loadJointsFromParameter(
-    const ros::NodeHandle& nodeHandle,
-    const std::string& jointsParameter,
-    const std::string& defaultType)
+std::vector<JointParameter> loadJointsFromParameter(const ros::NodeHandle& nodeHandle, const std::string& jointsParameter, const std::string& defaultType)
 {
   using XmlRpc::XmlRpcValue;
 
@@ -281,15 +251,12 @@ std::vector<JointParameter> loadJointsFromParameter(
   XmlRpcValue jointsXml;
   if (!nodeHandle.getParam("joints", jointsXml))
   {
-    ROS_ERROR_STREAM(
-        "Parameter '" << nodeHandle.getNamespace() << "/joints' is required.");
+    ROS_ERROR_STREAM("Parameter '" << nodeHandle.getNamespace() << "/joints' is required.");
   }
   //=============================================================================
   if (jointsXml.getType() != XmlRpcValue::TypeArray)
   {
-    ROS_ERROR_STREAM(
-        "Parameter '" << nodeHandle.getNamespace()
-                      << "/joints' is not an array.");
+    ROS_ERROR_STREAM("Parameter '" << nodeHandle.getNamespace() << "/joints' is not an array.");
     return emptyResult;
   }
 
@@ -311,9 +278,7 @@ std::vector<JointParameter> loadJointsFromParameter(
       auto& nameXml = jointXml["name"];
       if (nameXml.getType() != XmlRpcValue::TypeString)
       {
-        ROS_ERROR_STREAM(
-            "Parameter '" << nodeHandle.getNamespace() << "/joints[" << i
-                          << "]/name' is not a string.");
+        ROS_ERROR_STREAM("Parameter '" << nodeHandle.getNamespace() << "/joints[" << i << "]/name' is not a string.");
         return emptyResult;
       }
       jointParameters.mName = static_cast<std::string>(nameXml);
@@ -321,18 +286,14 @@ std::vector<JointParameter> loadJointsFromParameter(
       auto& typeXml = jointXml["type"];
       if (typeXml.getType() != XmlRpcValue::TypeString)
       {
-        ROS_ERROR_STREAM(
-            "Parameter '" << nodeHandle.getNamespace() << "/joints[" << i
-                          << "]/type' is not a string.");
+        ROS_ERROR_STREAM("Parameter '" << nodeHandle.getNamespace() << "/joints[" << i << "]/type' is not a string.");
         return emptyResult;
       }
       jointParameters.mType = static_cast<std::string>(typeXml);
     }
     else
     {
-      ROS_ERROR_STREAM(
-          "Parameter '" << nodeHandle.getNamespace() << "/joints[" << i
-                        << "]' is not a struct.");
+      ROS_ERROR_STREAM("Parameter '" << nodeHandle.getNamespace() << "/joints[" << i << "]' is not a struct.");
       return emptyResult;
     }
 

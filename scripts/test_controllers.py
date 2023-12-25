@@ -29,6 +29,7 @@ if __name__ == "__main__":
     tfBuffer = tf2_ros.Buffer()
     listener = tf2_ros.TransformListener(tfBuffer)
 
+    print("Switching to ", controller_space, " space controller. The robot might jerk a bit as it is switching to effort mode.")
     rospy.wait_for_service("controller_manager/switch_controller")
     rospy.wait_for_service("set_control_mode")
     switch_controller = rospy.ServiceProxy(
@@ -65,6 +66,7 @@ if __name__ == "__main__":
     if mode == "stop":
         sys.exit(0)
 
+    print("Switch complete. You can now send commands to the robot.")
     try:
         cmd_pub = None
         if controller_space == "task":
@@ -103,12 +105,12 @@ if __name__ == "__main__":
                 joint_states = rospy.wait_for_message(
                     "/joint_states", JointState, timeout=None
                 )
-                print("Current joint state: ", joint_states.position)
+                tmp = np.array(joint_states.position)[1:]
+                print("Current joint state: ", tmp)
                 cmd = JointTrajectoryPoint()
                 # take input from user
                 dof = int(input("Enter dof (1 - NDOF): "))
                 value = float(input("Enter value: "))
-                tmp = np.array(joint_states.position)[1:]
                 tmp[dof - 1] = value
                 cmd.positions = tmp.tolist()
                 cmd.velocities = [0] * len(tmp)

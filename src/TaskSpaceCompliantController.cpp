@@ -26,8 +26,7 @@ inline std::string getLeafNamespace(const ros::NodeHandle& nh)
 
 } // namespace internal
 
-TaskSpaceCompliantController::TaskSpaceCompliantController()
-  : MultiInterfaceController(true) // allow_optional_interfaces
+TaskSpaceCompliantController::TaskSpaceCompliantController() : MultiInterfaceController(true) // allow_optional_interfaces
 {
 }
 
@@ -36,8 +35,7 @@ TaskSpaceCompliantController::~TaskSpaceCompliantController()
 {
 }
 
-bool TaskSpaceCompliantController::init(
-    hardware_interface::RobotHW* robot, ros::NodeHandle& n)
+bool TaskSpaceCompliantController::init(hardware_interface::RobotHW* robot, ros::NodeHandle& n)
 {
 
   using hardware_interface::EffortJointInterface;
@@ -65,15 +63,13 @@ bool TaskSpaceCompliantController::init(
   }
 
   std::string parameterName;
-  mNodeHandle->param<std::string>(
-      "robot_description_parameter", parameterName, "/robot_description");
+  mNodeHandle->param<std::string>("robot_description_parameter", parameterName, "/robot_description");
 
   // Load the URDF from the parameter server.
   std::string robotDescription;
   if (!mNodeHandle->getParam(parameterName, robotDescription))
   {
-    ROS_ERROR_STREAM(
-        "Failed loading URDF from '" << parameterName << "' parameter.");
+    ROS_ERROR_STREAM("Failed loading URDF from '" << parameterName << "' parameter.");
     return false;
   }
   mModel = std::make_shared<pinocchio::Model>();
@@ -111,9 +107,7 @@ bool TaskSpaceCompliantController::init(
     }
     catch (const hardware_interface::HardwareInterfaceException& e)
     {
-      ROS_ERROR_STREAM(
-          "Unable to get interface of type 'EffortJointInterface' for joint '"
-          << dofName << "'.");
+      ROS_ERROR_STREAM("Unable to get interface of type 'EffortJointInterface' for joint '" << dofName << "'.");
       return false;
     }
   }
@@ -124,8 +118,7 @@ bool TaskSpaceCompliantController::init(
   mEENode = mModel->getFrameId(mEENodeName);
 
   mExtendedJoints = new ExtendedJointPosition(numControlledDofs, 3 * M_PI / 2);
-  mExtendedJointsGravity
-      = new ExtendedJointPosition(numControlledDofs, 3 * M_PI / 2);
+  mExtendedJointsGravity = new ExtendedJointPosition(numControlledDofs, 3 * M_PI / 2);
 
   mCount = 0;
   mNumControlledDofs = mModel->nv;
@@ -142,12 +135,6 @@ bool TaskSpaceCompliantController::init(
   mFrictionLp.resize(mNumControlledDofs, mNumControlledDofs);
   mFrictionLp.setZero();
 
-  mJointKMatrix.resize(mNumControlledDofs, mNumControlledDofs);
-  mJointKMatrix.setZero();
-
-  mJointDMatrix.resize(mNumControlledDofs, mNumControlledDofs);
-  mJointDMatrix.setZero();
-
   mTaskKMatrix.resize(6, 6);
   mTaskKMatrix.setZero();
 
@@ -160,18 +147,13 @@ bool TaskSpaceCompliantController::init(
     mRotorInertiaMatrix.diagonal() << 0.3, 0.3, 0.3, 0.18, 0.18, 0.2;
     mFrictionL.diagonal() << 75, 75, 75, 40, 40, 40;
     mFrictionLp.diagonal() << 5, 5, 5, 4, 4, 4;
-    mJointKMatrix.diagonal() << 10, 10, 10, 10, 10, 10;
-    mJointDMatrix.diagonal() << 2, 2, 2, 2, 2, 2;
   }
   else
   {
-    mJointStiffnessMatrix.diagonal() << 4000, 4000, 4000, 4000, 3500, 3500,
-        3500;
+    mJointStiffnessMatrix.diagonal() << 4000, 4000, 4000, 4000, 3500, 3500, 3500;
     mRotorInertiaMatrix.diagonal() << 0.3, 0.3, 0.3, 0.3, 0.18, 0.18, 0.2;
     mFrictionL.diagonal() << 75, 75, 75, 75, 40, 40, 40;
     mFrictionLp.diagonal() << 5, 5, 5, 5, 4, 4, 4;
-    mJointKMatrix.diagonal() << 10, 10, 10, 10, 10, 10, 10;
-    mJointDMatrix.diagonal() << 2, 2, 2, 2, 2, 2, 2;
   }
   mTaskKMatrix.diagonal() << 200, 200, 200, 100, 100, 100;
   mTaskDMatrix.diagonal() << 40, 40, 40, 20, 20, 20;
@@ -188,19 +170,15 @@ bool TaskSpaceCompliantController::init(
   std::string param_name = "joints";
   if (!n.getParam(param_name, mJointNames))
   {
-    ROS_ERROR_STREAM(
-        "Failed to getParam '" << param_name
-                               << "' (namespace: " << n.getNamespace() << ").");
+    ROS_ERROR_STREAM("Failed to getParam '" << param_name << "' (namespace: " << n.getNamespace() << ").");
     return false;
   }
 
   // ROS API: Subscribed topics
-  mSubCommand = n.subscribe<moveit_msgs::CartesianTrajectoryPoint>(
-      "command", 1, &TaskSpaceCompliantController::commandCallback, this);
+  mSubCommand = n.subscribe<moveit_msgs::CartesianTrajectoryPoint>("command", 1, &TaskSpaceCompliantController::commandCallback, this);
 
   // Dynamic reconfigure server
-  f = boost::bind(
-      &TaskSpaceCompliantController::dynamicReconfigureCallback, this, _1, _2);
+  f = boost::bind(&TaskSpaceCompliantController::dynamicReconfigureCallback, this, _1, _2);
   server.setCallback(f);
 
   ROS_INFO("TaskSpaceCompliantController initialized successfully");
@@ -208,36 +186,24 @@ bool TaskSpaceCompliantController::init(
 }
 
 //=============================================================================
-void TaskSpaceCompliantController::dynamicReconfigureCallback(
-    gen3_compliant_controllers::TaskSpaceCompliantControllerConfig& config,
-    uint32_t level)
+void TaskSpaceCompliantController::dynamicReconfigureCallback(gen3_compliant_controllers::TaskSpaceCompliantControllerConfig& config, uint32_t level)
 {
   if (mNumControlledDofs == 6)
   {
-    mJointStiffnessMatrix.diagonal() << config.j_0, config.j_1, config.j_2,
-        config.j_3, config.j_4, config.j_5;
-    mRotorInertiaMatrix.diagonal() << config.b_0, config.b_1, config.b_2,
-        config.b_3, config.b_4, config.b_5;
-    mFrictionL.diagonal() << config.l_0, config.l_1, config.l_2, config.l_3,
-        config.l_4, config.l_5;
-    mFrictionLp.diagonal() << config.lp_0, config.lp_1, config.lp_2,
-        config.lp_3, config.lp_4, config.lp_5;
+    mJointStiffnessMatrix.diagonal() << config.j_0, config.j_1, config.j_2, config.j_3, config.j_4, config.j_5;
+    mRotorInertiaMatrix.diagonal() << config.b_0, config.b_1, config.b_2, config.b_3, config.b_4, config.b_5;
+    mFrictionL.diagonal() << config.l_0, config.l_1, config.l_2, config.l_3, config.l_4, config.l_5;
+    mFrictionLp.diagonal() << config.lp_0, config.lp_1, config.lp_2, config.lp_3, config.lp_4, config.lp_5;
   }
   else
   {
-    mJointStiffnessMatrix.diagonal() << config.j_0, config.j_1, config.j_2,
-        config.j_3, config.j_4, config.j_5, config.j_6;
-    mRotorInertiaMatrix.diagonal() << config.b_0, config.b_1, config.b_2,
-        config.b_3, config.b_4, config.b_5, config.b_6;
-    mFrictionL.diagonal() << config.l_0, config.l_1, config.l_2, config.l_3,
-        config.l_4, config.l_5, config.l_6;
-    mFrictionLp.diagonal() << config.lp_0, config.lp_1, config.lp_2,
-        config.lp_3, config.lp_4, config.lp_5, config.lp_6;
+    mJointStiffnessMatrix.diagonal() << config.j_0, config.j_1, config.j_2, config.j_3, config.j_4, config.j_5, config.j_6;
+    mRotorInertiaMatrix.diagonal() << config.b_0, config.b_1, config.b_2, config.b_3, config.b_4, config.b_5, config.b_6;
+    mFrictionL.diagonal() << config.l_0, config.l_1, config.l_2, config.l_3, config.l_4, config.l_5, config.l_6;
+    mFrictionLp.diagonal() << config.lp_0, config.lp_1, config.lp_2, config.lp_3, config.lp_4, config.lp_5, config.lp_6;
   }
-  mTaskKMatrix.diagonal() << config.k_x, config.k_y, config.k_z, config.k_roll,
-      config.k_pitch, config.k_yaw;
-  mTaskDMatrix.diagonal() << config.d_x, config.d_y, config.d_z, config.d_roll,
-      config.d_pitch, config.d_yaw;
+  mTaskKMatrix.diagonal() << config.k_x, config.k_y, config.k_z, config.k_roll, config.k_pitch, config.k_yaw;
+  mTaskDMatrix.diagonal() << config.d_x, config.d_y, config.d_z, config.d_roll, config.d_pitch, config.d_yaw;
 }
 
 //=============================================================================
@@ -246,10 +212,8 @@ void TaskSpaceCompliantController::starting(const ros::Time& time)
 
   mExecuteDefaultCommand = true;
 
-  ROS_DEBUG_STREAM(
-      "Initialized desired position: " << mDesiredPosition.transpose());
-  ROS_DEBUG_STREAM(
-      "Initialized desired velocity: " << mDesiredVelocity.transpose());
+  ROS_DEBUG_STREAM("Initialized desired position: " << mDesiredPosition.transpose());
+  ROS_DEBUG_STREAM("Initialized desired velocity: " << mDesiredVelocity.transpose());
 
   ROS_DEBUG("Reset PID.");
 }
@@ -261,8 +225,7 @@ void TaskSpaceCompliantController::stopping(const ros::Time& time)
 }
 
 //=============================================================================
-void TaskSpaceCompliantController::update(
-    const ros::Time& time, const ros::Duration& period)
+void TaskSpaceCompliantController::update(const ros::Time& time, const ros::Duration& period)
 {
 
   auto current_time = std::chrono::high_resolution_clock::now();
@@ -273,16 +236,15 @@ void TaskSpaceCompliantController::update(
   mLastTimePoint = std::chrono::high_resolution_clock::now();
 
   mJointStateUpdater->update();
-  mActualPosition = mJointStateUpdater->mActualPosition;
-  mActualVelocity = mJointStateUpdater->mActualVelocity;
-  mActualEffort = mJointStateUpdater->mActualEffort;
+  mCurrentPosition = mJointStateUpdater->mCurrentPosition;
+  mCurrentVelocity = mJointStateUpdater->mCurrentVelocity;
+  mCurrentEffort = mJointStateUpdater->mCurrentEffort;
 
   if (mExecuteDefaultCommand.load())
   {
-    mDesiredPosition = mActualPosition;
+    mDesiredPosition = mCurrentPosition;
     mDesiredVelocity.setZero();
-    Eigen::VectorXd q_pin_desired
-        = joint_ros_to_pinocchio(mDesiredPosition, *mModel);
+    Eigen::VectorXd q_pin_desired = joint_ros_to_pinocchio(mDesiredPosition, *mModel);
     pinocchio::forwardKinematics(*mModel, *mData, q_pin_desired, mZeros);
     pinocchio::updateFramePlacement(*mModel, *mData, mEENode);
     mDesiredEETransform = mData->oMf[mEENode].toHomogeneousMatrix_impl();
@@ -295,14 +257,10 @@ void TaskSpaceCompliantController::update(
   else
   {
     std::cout << "Trying to read from buffer ..." << std::endl;
-    moveit_msgs::CartesianTrajectoryPoint& command
-        = *mCommandsBuffer.readFromRT();
-    if (command.point.pose.position.x == 0.0
-        && command.point.pose.position.y == 0.0
-        && command.point.pose.position.z == 0.0)
+    moveit_msgs::CartesianTrajectoryPoint& command = *mCommandsBuffer.readFromRT();
+    if (command.point.pose.position.x == 0.0 && command.point.pose.position.y == 0.0 && command.point.pose.position.z == 0.0)
     {
-      ROS_WARN_STREAM_NAMED(
-          mName, "Received command with zero position, skipping.");
+      ROS_WARN_STREAM_NAMED(mName, "Received command with zero position, skipping.");
     }
     else
     {
@@ -311,8 +269,7 @@ void TaskSpaceCompliantController::update(
       auto tmp = mDesiredEETransform.linear();
       tmp.col(0) = -tmp.col(0);
       tmp.col(1) = -tmp.col(1);
-      std::cout << "Received command: " << std::endl
-                << mDesiredEETransform.translation() << std::endl;
+      std::cout << "Received command: " << std::endl << mDesiredEETransform.translation() << std::endl;
     }
   }
 
@@ -323,15 +280,13 @@ void TaskSpaceCompliantController::update(
     mExtendedJoints->initializeExtendedJointPosition(mDesiredPosition);
     mExtendedJoints->estimateExtendedJoint(mDesiredPosition);
     mNominalThetaPrev = mExtendedJoints->getExtendedJoint();
-    mNominalThetaDotPrev = mActualVelocity;
+    mNominalThetaDotPrev = mCurrentVelocity;
     mTrueDesiredPosition = mExtendedJoints->getExtendedJoint();
     mTrueDesiredVelocity = mDesiredVelocity;
     mTrueDesiredEETransform = mDesiredEETransform;
   }
 
-  if (mDesiredPosition != mLastDesiredPosition
-      || !mDesiredEETransform.isApprox(mLastDesiredEETransform, 0.0001)
-             && mActualPosition != mDesiredPosition)
+  if (mDesiredPosition != mLastDesiredPosition || !mDesiredEETransform.isApprox(mLastDesiredEETransform, 0.0001) && mCurrentPosition != mDesiredPosition)
   {
     mLastDesiredPosition = mDesiredPosition;
     mLastDesiredEETransform = mDesiredEETransform;
@@ -344,12 +299,10 @@ void TaskSpaceCompliantController::update(
   {
     mExtendedJointsGravity->mIsInitialized = false;
     mExtendedJointsGravity->initializeExtendedJointPosition(mDesiredPosition);
-    mExtendedJointsGravity->estimateExtendedJoint(
-        mExtendedJointsGravity->mLastDesiredPosition);
-    mActualTheta = mExtendedJointsGravity->getExtendedJoint();
+    mExtendedJointsGravity->estimateExtendedJoint(mExtendedJointsGravity->mLastDesiredPosition);
+    mCurrentTheta = mExtendedJointsGravity->getExtendedJoint();
 
-    mGravity = pinocchio::computeGeneralizedGravity(
-        *mModel, *mData, joint_ros_to_pinocchio(mActualTheta, *mModel));
+    mGravity = pinocchio::computeGeneralizedGravity(*mModel, *mData, joint_ros_to_pinocchio(mCurrentTheta, *mModel));
 
     // compute quasi-static estimate of the link side position
     // input value is motor side angle theta not link side angle(q);
@@ -374,11 +327,10 @@ void TaskSpaceCompliantController::update(
     // *mData, q_pin);
   }
 
-  mExtendedJoints->estimateExtendedJoint(mActualPosition);
-  mActualTheta = mExtendedJoints->getExtendedJoint();
+  mExtendedJoints->estimateExtendedJoint(mCurrentPosition);
+  mCurrentTheta = mExtendedJoints->getExtendedJoint();
 
-  mDesiredTheta
-      = mTrueDesiredPosition + mJointStiffnessMatrix.inverse() * mGravity;
+  mDesiredTheta = mTrueDesiredPosition + mJointStiffnessMatrix.inverse() * mGravity;
   mDesiredThetaDot = mTrueDesiredVelocity;
 
   // Compute error
@@ -387,8 +339,7 @@ void TaskSpaceCompliantController::update(
   {
     Eigen::Quaterniond ee_quat_d(mTrueDesiredEETransform.linear());
 
-    Eigen::VectorXd q_pin_nominal_prev
-        = joint_ros_to_pinocchio(mNominalThetaPrev, *mModel);
+    Eigen::VectorXd q_pin_nominal_prev = joint_ros_to_pinocchio(mNominalThetaPrev, *mModel);
     pinocchio::computeJointJacobians(*mModel, *mData, q_pin_nominal_prev);
     pinocchio::updateFramePlacement(*mModel, *mData, mEENode);
     mNominalEETransform = mData->oMf[mEENode].toHomogeneousMatrix_impl();
@@ -399,15 +350,8 @@ void TaskSpaceCompliantController::update(
 
     Eigen::Quaterniond nominal_ee_quat(mNominalEETransform.linear());
 
-    pinocchio::getFrameJacobian(
-        *mModel,
-        *mData,
-        mEENode,
-        pinocchio::LOCAL_WORLD_ALIGNED,
-        dart_nominal_jacobian);
-    dart_error.head(3)
-        << mNominalEETransform.translation()
-               - mTrueDesiredEETransform.translation(); // positional error
+    pinocchio::getFrameJacobian(*mModel, *mData, mEENode, pinocchio::LOCAL_WORLD_ALIGNED, dart_nominal_jacobian);
+    dart_error.head(3) << mNominalEETransform.translation() - mTrueDesiredEETransform.translation(); // positional error
 
     if (ee_quat_d.coeffs().dot(nominal_ee_quat.coeffs()) < 0.0)
     {
@@ -419,33 +363,25 @@ void TaskSpaceCompliantController::update(
     dart_error.tail(3) << -mNominalEETransform.linear() * dart_error.tail(3);
   }
 
-  mTaskEffort
-      = dart_nominal_jacobian.transpose()
-        * (-mTaskKMatrix * dart_error
-           - mTaskDMatrix * (dart_nominal_jacobian * mNominalThetaDotPrev));
+  mTaskEffort = dart_nominal_jacobian.transpose() * (-mTaskKMatrix * dart_error - mTaskDMatrix * (dart_nominal_jacobian * mNominalThetaDotPrev));
 
   double step_time;
   step_time = 0.001;
 
-  mNominalThetaDDot
-      = mRotorInertiaMatrix.inverse()
-        * (mTaskEffort + mGravity + mActualEffort); // mActualEffort is negative
-                                                    // of what is required here
+  mNominalThetaDDot = mRotorInertiaMatrix.inverse() * (mTaskEffort + mGravity + mCurrentEffort); // mCurrentEffort is negative of what is required here
   mNominalThetaDot = mNominalThetaDotPrev + mNominalThetaDDot * step_time;
   mNominalTheta = mNominalThetaPrev + mNominalThetaDot * step_time;
 
   mNominalThetaPrev = mNominalTheta;
   mNominalThetaDotPrev = mNominalThetaDot;
 
-  mNominalFriction = mRotorInertiaMatrix * mFrictionL
-                     * ((mNominalThetaDotPrev - mActualVelocity)
-                        + mFrictionLp * (mNominalThetaPrev - mActualTheta));
+  mNominalFriction = mRotorInertiaMatrix * mFrictionL * ((mNominalThetaDotPrev - mCurrentVelocity) + mFrictionLp * (mNominalThetaPrev - mCurrentTheta));
 
-  mDesiredEffort = mTaskEffort + mNominalFriction;
+  mCommandEffort = mTaskEffort + mNominalFriction;
 
   if (mCount < 50)
   {
-    mDesiredEffort = Eigen::VectorXd::Zero(mNumControlledDofs);
+    mCommandEffort = Eigen::VectorXd::Zero(mNumControlledDofs);
     mCount++;
     if (mCount % 10 == 0)
       std::cout << "Initializing controller: " << mCount << std::endl;
@@ -454,18 +390,16 @@ void TaskSpaceCompliantController::update(
   for (size_t idof = 0; idof < mControlledJointHandles.size(); ++idof)
   {
     auto jointHandle = mControlledJointHandles[idof];
-    jointHandle.setCommand(mDesiredEffort[idof]);
+    jointHandle.setCommand(mCommandEffort[idof]);
   }
 }
 
-void TaskSpaceCompliantController::commandCallback(
-    const moveit_msgs::CartesianTrajectoryPointConstPtr& msg)
+void TaskSpaceCompliantController::commandCallback(const moveit_msgs::CartesianTrajectoryPointConstPtr& msg)
 {
   // Preconditions
   if (!shouldAcceptRequests())
   {
-    ROS_ERROR_STREAM_NAMED(
-        mName, "Can't accept new commands. Controller is not running.");
+    ROS_ERROR_STREAM_NAMED(mName, "Can't accept new commands. Controller is not running.");
     return;
   }
 
@@ -495,6 +429,4 @@ bool TaskSpaceCompliantController::shouldStopExecution(std::string& message)
 } // namespace gen3_compliant_controllers
 
 //=============================================================================
-PLUGINLIB_EXPORT_CLASS(
-    gen3_compliant_controllers::TaskSpaceCompliantController,
-    controller_interface::ControllerBase)
+PLUGINLIB_EXPORT_CLASS(gen3_compliant_controllers::TaskSpaceCompliantController, controller_interface::ControllerBase)
