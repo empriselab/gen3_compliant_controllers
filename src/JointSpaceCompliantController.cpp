@@ -240,7 +240,7 @@ void JointSpaceCompliantController::update(const ros::Time& time, const ros::Dur
     if (command.positions.size() != mNumControlledDofs || command.velocities.size() != mNumControlledDofs)
     {
       // assume last command
-      ROS_WARN_STREAM("Received command with wrong size. Assuming last command.");
+      ROS_WARN_STREAM("Received no command or command with wrong size. Assuming current position as goal.");
     }
     else
     {
@@ -262,7 +262,6 @@ void JointSpaceCompliantController::update(const ros::Time& time, const ros::Dur
   if (mDesiredPosition != mLastDesiredPosition && mCurrentPosition != mDesiredPosition)
   {
     mLastDesiredPosition = mDesiredPosition;
-    mExtendedJoints->estimateExtendedJoint(mDesiredPosition);
     mDesiredPosition = mExtendedJoints->getExtendedJoint();
   }
 

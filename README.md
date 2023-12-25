@@ -28,7 +28,7 @@ cd .. && catkin build
 ## Usage
 It is preferred to have the robot and the system running ROS on the same network and connected via ethernet (especially important for torque control). For safety purposes, **make sure to have the e-stop next to you when testing.**
 
-To ensure correct biasing of the robot's torque sensors, position the robot to the candlestick configuration with all joint positions set to zero. Then, zero out the actuator torque offset for each joint using the web application. For testing compliant control, return the robot to a general position like HOME; avoid testing at the candlestick position due to potential instability.
+To ensure correct biasing of the robot's torque sensors, position the robot to the candlestick configuration with all joint positions set to zero (we recommend using the Kinova web app for this part). Then, zero out the actuator torque offset for each joint using the web application. For testing compliant control, return the robot to a general position like HOME; avoid testing at the candlestick position due to potential instability.
 
 Running instructions for testing the controllers:
 ```

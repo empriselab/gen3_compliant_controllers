@@ -29,7 +29,7 @@ if __name__ == "__main__":
     tfBuffer = tf2_ros.Buffer()
     listener = tf2_ros.TransformListener(tfBuffer)
 
-    print("Switching to ", controller_space, " space controller. The robot might jerk a bit as it is switching to effort mode.")
+    print("Switching to", controller_space, "space controller. The robot might jerk a bit as it is switching to effort mode.")
     rospy.wait_for_service("controller_manager/switch_controller")
     rospy.wait_for_service("set_control_mode")
     switch_controller = rospy.ServiceProxy(

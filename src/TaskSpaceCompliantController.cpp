@@ -256,7 +256,6 @@ void TaskSpaceCompliantController::update(const ros::Time& time, const ros::Dura
   }
   else
   {
-    std::cout << "Trying to read from buffer ..." << std::endl;
     moveit_msgs::CartesianTrajectoryPoint& command = *mCommandsBuffer.readFromRT();
     if (command.point.pose.position.x == 0.0 && command.point.pose.position.y == 0.0 && command.point.pose.position.z == 0.0)
     {
@@ -269,7 +268,6 @@ void TaskSpaceCompliantController::update(const ros::Time& time, const ros::Dura
       auto tmp = mDesiredEETransform.linear();
       tmp.col(0) = -tmp.col(0);
       tmp.col(1) = -tmp.col(1);
-      std::cout << "Received command: " << std::endl << mDesiredEETransform.translation() << std::endl;
     }
   }
 
@@ -290,7 +288,6 @@ void TaskSpaceCompliantController::update(const ros::Time& time, const ros::Dura
   {
     mLastDesiredPosition = mDesiredPosition;
     mLastDesiredEETransform = mDesiredEETransform;
-    mExtendedJoints->estimateExtendedJoint(mDesiredPosition);
     mTrueDesiredPosition = mExtendedJoints->getExtendedJoint();
     mTrueDesiredVelocity = mDesiredVelocity;
     mTrueDesiredEETransform = mDesiredEETransform;
