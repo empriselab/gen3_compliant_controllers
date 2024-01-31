@@ -199,6 +199,7 @@ void TaskSpaceCompliantController::dynamicReconfigureCallback(gen3_compliant_con
     mRotorInertiaMatrix.diagonal() << config.b_0, config.b_1, config.b_2, config.b_3, config.b_4, config.b_5;
     mFrictionL.diagonal() << config.l_0, config.l_1, config.l_2, config.l_3, config.l_4, config.l_5;
     mFrictionLp.diagonal() << config.lp_0, config.lp_1, config.lp_2, config.lp_3, config.lp_4, config.lp_5;
+    mJointDMatrix.diagonal() << config.qd_0, config.qd_1, config.qd_2, config.qd_3, config.qd_4, config.qd_5;
   }
   else
   {
@@ -206,6 +207,7 @@ void TaskSpaceCompliantController::dynamicReconfigureCallback(gen3_compliant_con
     mRotorInertiaMatrix.diagonal() << config.b_0, config.b_1, config.b_2, config.b_3, config.b_4, config.b_5, config.b_6;
     mFrictionL.diagonal() << config.l_0, config.l_1, config.l_2, config.l_3, config.l_4, config.l_5, config.l_6;
     mFrictionLp.diagonal() << config.lp_0, config.lp_1, config.lp_2, config.lp_3, config.lp_4, config.lp_5, config.lp_6;
+    mJointDMatrix.diagonal() << config.qd_0, config.qd_1, config.qd_2, config.qd_3, config.qd_4, config.qd_5, config.qd_6;
   }
   mTaskKMatrix.diagonal() << config.k_x, config.k_y, config.k_z, config.k_roll, config.k_pitch, config.k_yaw;
   mTaskDMatrix.diagonal() << config.d_x, config.d_y, config.d_z, config.d_roll, config.d_pitch, config.d_yaw;
