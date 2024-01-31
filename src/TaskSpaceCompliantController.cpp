@@ -141,12 +141,16 @@ bool TaskSpaceCompliantController::init(hardware_interface::RobotHW* robot, ros:
   mTaskDMatrix.resize(6, 6);
   mTaskDMatrix.setZero();
 
+  mJointDMatrix.resize(mNumControlledDofs, mNumControlledDofs);
+  mJointDMatrix.setZero();
+
   if (mNumControlledDofs == 6)
   {
     mJointStiffnessMatrix.diagonal() << 4000, 4000, 4000, 3500, 3500, 3500;
     mRotorInertiaMatrix.diagonal() << 0.3, 0.3, 0.3, 0.18, 0.18, 0.2;
     mFrictionL.diagonal() << 75, 75, 75, 40, 40, 40;
     mFrictionLp.diagonal() << 5, 5, 5, 4, 4, 4;
+    mJointDMatrix.diagonal() << 4, 4, 4, 3, 3, 3;
   }
   else
   {
@@ -154,6 +158,7 @@ bool TaskSpaceCompliantController::init(hardware_interface::RobotHW* robot, ros:
     mRotorInertiaMatrix.diagonal() << 0.3, 0.3, 0.3, 0.3, 0.18, 0.18, 0.2;
     mFrictionL.diagonal() << 75, 75, 75, 75, 40, 40, 40;
     mFrictionLp.diagonal() << 5, 5, 5, 5, 4, 4, 4;
+    mJointDMatrix.diagonal() << 4, 4, 4, 4, 3, 3, 3;
   }
   mTaskKMatrix.diagonal() << 200, 200, 200, 100, 100, 100;
   mTaskDMatrix.diagonal() << 40, 40, 40, 20, 20, 20;
@@ -361,6 +366,8 @@ void TaskSpaceCompliantController::update(const ros::Time& time, const ros::Dura
   }
 
   mTaskEffort = dart_nominal_jacobian.transpose() * (-mTaskKMatrix * dart_error - mTaskDMatrix * (dart_nominal_jacobian * mNominalThetaDotPrev));
+  Eigen::MatrixXd dart_nominal_jacobian_pseudo_inverse = dart_nominal_jacobian.completeOrthogonalDecomposition().pseudoInverse();
+  mTaskEffort = mTaskEffort - (Eigen::MatrixXd::Identity(mNumControlledDofs, mNumControlledDofs) - dart_nominal_jacobian_pseudo_inverse*dart_nominal_jacobian) * mJointDMatrix * mNominalThetaDotPrev;
 
   double step_time;
   step_time = 0.001;

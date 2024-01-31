@@ -76,8 +76,9 @@ private:
   Eigen::MatrixXd mRotorInertiaMatrix;   // Rotor inertia matrix
   Eigen::MatrixXd mFrictionL;            // Friction observer matrix 1
   Eigen::MatrixXd mFrictionLp;           // Friction observer matrix 2
-  Eigen::MatrixXd mTaskKMatrix;          // Task compliance proportional gain matrix
-  Eigen::MatrixXd mTaskDMatrix;          // Task compliance derivative gain matrix
+  Eigen::MatrixXd mTaskKMatrix;          // Task compliance proportional gain matrix (virtual cartesian stiffness)
+  Eigen::MatrixXd mTaskDMatrix;          // Task compliance derivative gain matrix (virtual cartesian damping)
+  Eigen::MatrixXd mJointDMatrix;         // Task Null-Space joint damping matrix
 
   long long int mCount; // Used during initialization
 
