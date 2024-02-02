@@ -3,6 +3,7 @@
 #include <cmath>
 #include <functional>
 #include <stdexcept>
+#include <numbers>
 
 #include <gen3_compliant_controllers/JointSpaceCompliantController.hpp>
 #include <hardware_interface/joint_command_interface.h>
@@ -273,7 +274,12 @@ void JointSpaceCompliantController::update(const ros::Time& time, const ros::Dur
   mDesiredTheta = mDesiredPosition + mJointStiffnessMatrix.inverse() * mGravity;
   mDesiredThetaDot = mDesiredVelocity;
 
-  mTaskEffort = -mJointKMatrix * (mNominalThetaPrev - mDesiredTheta) - mJointDMatrix * (mNominalThetaDotPrev - mDesiredThetaDot);
+  std::vector<int> ind{0, 2, 4, 6}; // make joints 1, 3, 5, 7 (indices 0, 2, 4, 6) limitless rotationable
+  Eigen::VectorXd mErrorTheta = mNominalThetaPrev - mDesiredTheta;
+  Eigen::VectorXd two_pi = 2*std::numbers::pi*Eigen::VectorXd::Constant(mNumcontrolledDof, 1);
+  mErrorTheta(ind) = (mErrorTheta(ind).array() > std::numbers::pi).select(mErrorTheta(ind) - two_pi, mErrorTheta(ind); // account for jump pi -> -pi
+  mErrorTheta(ind) = (mErrorTheta(ind).array() <= -std::numbers::pi).select(mErrorTheta(ind) + two_pi, mErrorTheta(ind); // account for jump -pi -> pi
+  mTaskEffort = -mJointKMatrix * mErrorTheta - mJointDMatrix * (mNominalThetaDotPrev - mDesiredThetaDot);
 
   double step_time;
   step_time = 0.001;
