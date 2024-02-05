@@ -150,7 +150,7 @@ bool TaskSpaceCompliantController::init(hardware_interface::RobotHW* robot, ros:
     mRotorInertiaMatrix.diagonal() << 0.3, 0.3, 0.3, 0.18, 0.18, 0.2;
     mFrictionL.diagonal() << 75, 75, 75, 40, 40, 40;
     mFrictionLp.diagonal() << 5, 5, 5, 4, 4, 4;
-    mJointDMatrix.diagonal() << 4, 4, 4, 3, 3, 3;
+    mJointDMatrix.diagonal() << 12, 12, 12, 9, 9, 9;
   }
   else
   {
@@ -158,7 +158,7 @@ bool TaskSpaceCompliantController::init(hardware_interface::RobotHW* robot, ros:
     mRotorInertiaMatrix.diagonal() << 0.3, 0.3, 0.3, 0.3, 0.18, 0.18, 0.2;
     mFrictionL.diagonal() << 75, 75, 75, 75, 40, 40, 40;
     mFrictionLp.diagonal() << 5, 5, 5, 5, 4, 4, 4;
-    mJointDMatrix.diagonal() << 4, 4, 4, 4, 3, 3, 3;
+    mJointDMatrix.diagonal() << 12, 12, 12, 12, 9, 9, 9;
   }
   mTaskKMatrix.diagonal() << 200, 200, 200, 100, 100, 100;
   mTaskDMatrix.diagonal() << 40, 40, 40, 20, 20, 20;
