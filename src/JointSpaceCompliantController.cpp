@@ -277,7 +277,11 @@ void JointSpaceCompliantController::update(const ros::Time& time, const ros::Dur
   Eigen::VectorXd mErrorTheta = mNominalThetaPrev - mDesiredTheta;
   Eigen::VectorXd add_pis = (mErrorTheta.array() > M_PI).select(Eigen::VectorXd::Constant(mNumControlledDofs, -2*M_PI), Eigen::VectorXd::Constant(mNumControlledDofs, 0)); // account for jump pi -> -pi
   add_pis += (mErrorTheta.array() <= -M_PI).select(Eigen::VectorXd::Constant(mNumControlledDofs, 2*M_PI), Eigen::VectorXd::Constant(mNumControlledDofs, 0)); // account for jump -pi -> pi
-  add_pis[1] = 0; add_pis[3] = 0; add_pis[5] = 0; // respect joint limits at pi/-pi for joints 2, 4, 6 (indices 1, 3, 5)
+  if (mNumControlledDofs == 6) {
+    add_pis[1] = 0; add_pis[2] = 0; add_pis[4] = 0; // respect joint limits at pi/-pi for joints 2, 3, 5 (indices 1, 2, 4)
+  } else {
+    add_pis[1] = 0; add_pis[3] = 0; add_pis[5] = 0; // respect joint limits at pi/-pi for joints 2, 4, 6 (indices 1, 3, 5)
+  }
   mTaskEffort = -mJointKMatrix * (mErrorTheta + add_pis)- mJointDMatrix * (mNominalThetaDotPrev - mDesiredThetaDot);
 
   double step_time;
