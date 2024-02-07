@@ -3,11 +3,11 @@
 #include <cmath>
 #include <functional>
 #include <stdexcept>
-#include <math.h>
 
 #include <gen3_compliant_controllers/JointSpaceCompliantController.hpp>
 #include <hardware_interface/joint_command_interface.h>
 #include <hardware_interface/joint_state_interface.h>
+#include <math.h>
 #include <pluginlib/class_list_macros.h>
 
 #include "pinocchio/algorithm/joint-configuration.hpp"
@@ -275,7 +275,8 @@ void JointSpaceCompliantController::update(const ros::Time& time, const ros::Dur
   mDesiredThetaDot = mDesiredVelocity;
 
   Eigen::VectorXd mErrorTheta = mNominalThetaPrev - mDesiredTheta;
-  Eigen::VectorXd add_pis = (mErrorTheta.array() > M_PI).select(Eigen::VectorXd::Constant(mNumControlledDofs, -2 * M_PI), Eigen::VectorXd::Constant(mNumControlledDofs, 0)); // account for jump pi -> -pi
+  Eigen::VectorXd add_pis
+      = (mErrorTheta.array() > M_PI).select(Eigen::VectorXd::Constant(mNumControlledDofs, -2 * M_PI), Eigen::VectorXd::Constant(mNumControlledDofs, 0));       // account for jump pi -> -pi
   add_pis += (mErrorTheta.array() <= -M_PI).select(Eigen::VectorXd::Constant(mNumControlledDofs, 2 * M_PI), Eigen::VectorXd::Constant(mNumControlledDofs, 0)); // account for jump -pi -> pi
   if (mNumControlledDofs == 6)
   {
