@@ -141,12 +141,16 @@ bool TaskSpaceCompliantController::init(hardware_interface::RobotHW* robot, ros:
   mTaskDMatrix.resize(6, 6);
   mTaskDMatrix.setZero();
 
+  mJointDMatrix.resize(mNumControlledDofs, mNumControlledDofs);
+  mJointDMatrix.setZero();
+
   if (mNumControlledDofs == 6)
   {
     mJointStiffnessMatrix.diagonal() << 4000, 4000, 4000, 3500, 3500, 3500;
     mRotorInertiaMatrix.diagonal() << 0.3, 0.3, 0.3, 0.18, 0.18, 0.2;
     mFrictionL.diagonal() << 75, 75, 75, 40, 40, 40;
     mFrictionLp.diagonal() << 5, 5, 5, 4, 4, 4;
+    mJointDMatrix.diagonal() << 12, 12, 12, 9, 9, 9;
   }
   else
   {
@@ -154,6 +158,7 @@ bool TaskSpaceCompliantController::init(hardware_interface::RobotHW* robot, ros:
     mRotorInertiaMatrix.diagonal() << 0.3, 0.3, 0.3, 0.3, 0.18, 0.18, 0.2;
     mFrictionL.diagonal() << 75, 75, 75, 75, 40, 40, 40;
     mFrictionLp.diagonal() << 5, 5, 5, 5, 4, 4, 4;
+    mJointDMatrix.diagonal() << 12, 12, 12, 12, 9, 9, 9;
   }
   mTaskKMatrix.diagonal() << 200, 200, 200, 100, 100, 100;
   mTaskDMatrix.diagonal() << 40, 40, 40, 20, 20, 20;
@@ -194,6 +199,7 @@ void TaskSpaceCompliantController::dynamicReconfigureCallback(gen3_compliant_con
     mRotorInertiaMatrix.diagonal() << config.b_0, config.b_1, config.b_2, config.b_3, config.b_4, config.b_5;
     mFrictionL.diagonal() << config.l_0, config.l_1, config.l_2, config.l_3, config.l_4, config.l_5;
     mFrictionLp.diagonal() << config.lp_0, config.lp_1, config.lp_2, config.lp_3, config.lp_4, config.lp_5;
+    mJointDMatrix.diagonal() << config.qd_0, config.qd_1, config.qd_2, config.qd_3, config.qd_4, config.qd_5;
   }
   else
   {
@@ -201,6 +207,7 @@ void TaskSpaceCompliantController::dynamicReconfigureCallback(gen3_compliant_con
     mRotorInertiaMatrix.diagonal() << config.b_0, config.b_1, config.b_2, config.b_3, config.b_4, config.b_5, config.b_6;
     mFrictionL.diagonal() << config.l_0, config.l_1, config.l_2, config.l_3, config.l_4, config.l_5, config.l_6;
     mFrictionLp.diagonal() << config.lp_0, config.lp_1, config.lp_2, config.lp_3, config.lp_4, config.lp_5, config.lp_6;
+    mJointDMatrix.diagonal() << config.qd_0, config.qd_1, config.qd_2, config.qd_3, config.qd_4, config.qd_5, config.qd_6;
   }
   mTaskKMatrix.diagonal() << config.k_x, config.k_y, config.k_z, config.k_roll, config.k_pitch, config.k_yaw;
   mTaskDMatrix.diagonal() << config.d_x, config.d_y, config.d_z, config.d_roll, config.d_pitch, config.d_yaw;
@@ -361,6 +368,8 @@ void TaskSpaceCompliantController::update(const ros::Time& time, const ros::Dura
   }
 
   mTaskEffort = dart_nominal_jacobian.transpose() * (-mTaskKMatrix * dart_error - mTaskDMatrix * (dart_nominal_jacobian * mNominalThetaDotPrev));
+  Eigen::MatrixXd dart_nominal_jacobian_pseudo_inverse = dart_nominal_jacobian.completeOrthogonalDecomposition().pseudoInverse();
+  mTaskEffort = mTaskEffort - (Eigen::MatrixXd::Identity(mNumControlledDofs, mNumControlledDofs) - dart_nominal_jacobian_pseudo_inverse * dart_nominal_jacobian) * mJointDMatrix * mNominalThetaDotPrev;
 
   double step_time;
   step_time = 0.001;
