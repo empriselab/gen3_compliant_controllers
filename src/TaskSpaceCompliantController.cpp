@@ -369,7 +369,7 @@ void TaskSpaceCompliantController::update(const ros::Time& time, const ros::Dura
 
   mTaskEffort = dart_nominal_jacobian.transpose() * (-mTaskKMatrix * dart_error - mTaskDMatrix * (dart_nominal_jacobian * mNominalThetaDotPrev));
   Eigen::MatrixXd dart_nominal_jacobian_pseudo_inverse = dart_nominal_jacobian.completeOrthogonalDecomposition().pseudoInverse();
-  mTaskEffort = mTaskEffort - (Eigen::MatrixXd::Identity(mNumControlledDofs, mNumControlledDofs) - dart_nominal_jacobian_pseudo_inverse*dart_nominal_jacobian) * mJointDMatrix * mNominalThetaDotPrev;
+  mTaskEffort = mTaskEffort - (Eigen::MatrixXd::Identity(mNumControlledDofs, mNumControlledDofs) - dart_nominal_jacobian_pseudo_inverse * dart_nominal_jacobian) * mJointDMatrix * mNominalThetaDotPrev;
 
   double step_time;
   step_time = 0.001;
